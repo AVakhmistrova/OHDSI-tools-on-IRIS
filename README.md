@@ -128,6 +128,7 @@ docker-compose --env-file .env --profile webapi-from-git --profile content --pro
 ```
 docker exec -it broadsea-hades bash
 apt-get update && apt-get install -y default-jdk libpcre2-dev liblzma-dev libbz2-dev zlib1g-dev libicu-dev libxml2-dev
+exit
 ```
 
 7. Copy the JDBC driver into the HADES container: 
