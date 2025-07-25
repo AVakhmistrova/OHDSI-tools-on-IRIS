@@ -204,7 +204,7 @@ tryCatch({conn <- DatabaseConnector::connect(connectionDetails); message("Connec
 ![Hades](Hades_preparation.png)
 *Fig. 3. Packages in Rstudio*
 
-4. [Load your dataset into the OMOP CDM 5.4 schema in IRIS.](#Loading-Data-into-InterSystems-IRIS-(OPTIONAL))  
+4. [Load your dataset into the OMOP CDM 5.4 schema in IRIS.](#loading-data-into-intersystems-iris-optional)  
 
 5. Run Achilles (make sure the CDM tables are populated with your data before running Achilles).  
 Run code in RStudio:
@@ -226,7 +226,7 @@ After Achilles runs successfully you will see dashboards populated in ATLAS.
 
 *Note! Before re-running Achilles on the same dataset, make sure to clean up the temporary classes (tables) it generates in the results schema in IRIS. Or create a new result schema to avoid conflicts.*
 
-## Loading Data into InterSystems IRIS (OPTIONAL)
+## Loading Data into InterSystems IRIS (OPTIONAL)
 This section reviews practical pathways for bringing OMOP Common Data Model (CDM) content into an InterSystems IRIS instance—whether that instance runs locally, in Docker, or in the InterSystems Cloud. Choose the approach that best matches your environment and data‑volume profile.
 
 ### Using InterSystems Cloud
