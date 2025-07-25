@@ -64,15 +64,16 @@ Execute:
 ```
 docker run --name my-iris -d -v dbvolume:/durable intersystems/iris-community:2025.1
 
-# The next commands can be updated to use advanced flags
 docker exec -u root my-iris chown -R irisowner:irisowner /durable
 
 docker container rm -f my-iris
 
 docker run --name my-iris -d --publish 1972:1972 --publish 52773:52773 -v dbvolume:/durable --env ISC_DATA_DIRECTORY=/durable/iris intersystems/iris-community:2025.1
 ```
+
 Browse to **http://127.0.0.1:52773/csp/sys/UtilHome.csp** and log in with the default account (_SYSTEM / SYS), then set a strong password.
 For custom [volumes](https://docs.docker.com/engine/storage/volumes/), entry‑points, or ARM images see the official [Docker guide](https://docs.docker.com/manuals/).
+
 
 ## Deploying OHDSI Broadsea and Connecting to InterSystems IRIS
 ![OHDSI Broadsea](OHDSI_Broadsea.png)
@@ -86,7 +87,7 @@ git clone https://github.com/OHDSI/Broadsea.git
 ```  
 **Perform all further actions inside the newly created Broadsea directory.**
 
-2. Edit .env file inside the cloned  repo:
+2. Edit .env file inside the cloned  repo:  
 *Note: The .env file is hidden by default:*
 - On macOS, press Cmd + Shift + . in Finder, or use ls -a in the terminal.
 - On Windows, enable “Hidden items” in the View tab of File Explorer, or use dir /a in Command Prompt.
@@ -100,7 +101,15 @@ git clone https://github.com/OHDSI/Broadsea.git
 + WEBAPI_ADDITIONAL_JDBC_FILE_PATH="../jdbc/intersystems-jdbc-3.10.3.jar"
 ```
 
-3. Download the InterSystems JDBC driver (v 3.10.3) from Maven Central  to “ jdbc”  directory  in  the project.
+3. Update the broadsea-hades service block in docker-compose.yml file inside the cloned  repo:  
+   *Note: ONLY on macOS with apple silicon chip!*
+```
+ broadsea-hades:
+   image: rocker/rstudio:4.3.1
+   platform: "linux/arm64"
+```
+
+4. Download the InterSystems JDBC driver (v 3.10.3) from Maven Central  to “ jdbc”  directory  in  the project.
 Or use command:
  ```
 #run this command also inside the project directory
@@ -108,36 +117,49 @@ curl -o ./jdbc/intersystems-jdbc-3.10.3.jar https://repo1.maven.org/maven2/com/i
 ```
 *We have to download the JDBC driver manually, since it is required for WebAPI. You can see in Fig.1 that WebAPI uses a driver to connect to IRIS.*
 
-4. Start Broadsea:
+5. Start Broadsea:
  ```
 # make sure you are running docker-compose in the correct directory that contains docker-compose.yml
 docker-compose --env-file .env --profile webapi-from-git --profile content --profile hades --profile atlasdb --profile atlas-from-image up -d
-``` 
+```
 
-5. Copy the JDBC driver into the HADES container: 
+6. Install Java + developer libraries in HADES container:  
+*Note: ONLY on macOS with apple silicon chip!*
+```
+docker exec -it broadsea-hades bash
+apt-get update && apt-get install -y default-jdk libpcre2-dev liblzma-dev libbz2-dev zlib1g-dev libicu-dev libxml2-dev
+```
+
+7. Copy the JDBC driver into the HADES container: 
  ```
 #run this command also inside the project directory
+docker exec -it broadsea-hades bash
+mkdir -p /opt/hades/jdbc_drivers
+exit
 docker cp ./jdbc/intersystems-jdbc-3.10.3.jar broadsea-hades:/opt/hades/jdbc_drivers/
 ```
 *Note: This step is temporary and will no longer be required once [OHDSI/Hades pull request #33](https://github.com/OHDSI/Hades/pull/33) is merged.
 Alternatively run DatabaseConnector::downloadJdbcDrivers(\"iris\") inside RStudio to fetch the driver automatically (this can be done during hades preparation)*
 
-6. Register InterSystems IRIS as a data‑source in Postgres (WebAPI).
-Create a new file named 200_populate_iris_source_daimon.sql and add the following SQL content (you can see this example script from the Broadsea repository for reference). Be sure to replace **%LOGIN%** and **%PASSWORD%** with your actual IRIS credentials:
+8. Register InterSystems IRIS as a data‑source in Postgres (WebAPI).
+Create a new file named 200_populate_iris_source_daimon.sql and add the following SQL content (you can see this example script from the Broadsea repository for reference). Be sure to replace **%LOGIN%** and **%PASSWORD%** with your actual IRIS credentials:  
+*Note: On macOS use VS Code or another IDE instead of TextEdit. TextEdit can add invisible formatting that breaks scripts*
  ```
+DELETE FROM webapi.source_daimon WHERE source_daimon_id IN (4, 5, 6);
+DELETE FROM webapi.source WHERE source_id = 2;
 INSERT INTO webapi.source(source_id, source_name, source_key, source_connection, source_dialect)
 VALUES (2, 'my-iris', 'IRIS', 'jdbc:IRIS://host.docker.internal:1972/USER?user=%LOGIN%&password=%PASSWORD%', 'iris');
 INSERT INTO webapi.source_daimon( source_daimon_id, source_id, daimon_type, table_qualifier, priority) VALUES (4, 2, 0, 'OMOPCDM54', 0);
 INSERT INTO webapi.source_daimon( source_daimon_id, source_id, daimon_type, table_qualifier, priority) VALUES (5, 2, 1, 'OMOPCDM54', 10);
 INSERT INTO webapi.source_daimon( source_daimon_id, source_id, daimon_type, table_qualifier, priority) VALUES (6, 2, 2, 'OMOPCDM54_RESULTS', 0);
 ``` 
-7. Loading 200_populate_iris_source_daimon.sql into the database:
+9. Loading 200_populate_iris_source_daimon.sql into the database:
 ```
 docker cp 200_populate_iris_source_daimon.sql broadsea-atlasdb:/docker-entrypoint-initdb.d/200_populate_iris_source_daimon.sql
 docker exec -it broadsea-atlasdb psql -U postgres -f "/docker-entrypoint-initdb.d/200_populate_iris_source_daimon.sql"
 ```
 
-8. Temporary patch ([until upstream PR merges](https://github.com/intersystems-community/OHDSI-SqlRender/commit/0c6f068755083f9ec7479ed5038e5bcc0cc3d354)) — download and replace replacementPatterns.csv in the HADES container:
+10. Temporary patch ([until upstream PR merges](https://github.com/intersystems-community/OHDSI-SqlRender/commit/0c6f068755083f9ec7479ed5038e5bcc0cc3d354)) — download and replace replacementPatterns.csv in the HADES container:
  ```
 # find the container ID of ohdsi/broadsea-hades 
 docker ps
@@ -146,7 +168,7 @@ docker ps
 docker cp "/your_path/to/replacementPatterns.csv" <container_id>:/usr/local/lib/R/site-library/SqlRender/csv/replacementPatterns.csv
 ```
 
-9. Restart  the affected container via the Docker Desktop UI.
+11. Restart  the affected container via the Docker Desktop UI.
 Once all containers are healthy, open http://127.0.0.1 to access ATLAS and other services.
 ![OHDSI__Broadsea](Broadsea.png)
 *Fig. 2. Applications in OHDSI/Broadsea*
@@ -160,23 +182,31 @@ Once all containers are healthy, open http://127.0.0.1 to access ATLAS and other
 
 2. Run the commands in RStudio:
 ```
-#temporary patch for DBconnector
-remotes::install_github("OHDSI/DatabaseConnector@7968375593dc7e030c7cc243d9f52828c6cc94bc")
+# this command should be run ONLY on macOS with apple silicon chip!
+Sys.setenv(JAVA_HOME = "/usr/lib/jvm/default-java")
+install.packages("rJava")
+
+# this command should be run ONLY on macOS with apple silicon chip!
+if (!requireNamespace("remotes", quietly = TRUE)) {install.packages("remotes")}
+
+#install the recommended version (commit-specific) of DatabaseConnector
+tryCatch({remotes::install_github("OHDSI/DatabaseConnector@7968375593dc7e030c7cc243d9f52828c6cc94bc", upgrade = "never", dependencies = TRUE)}, error = function(e) {stop("Cannot continue without DatabaseConnector: ", conditionMessage(e))})
 
 library(DatabaseConnector)
 
-# connection to Iris. if it doesn't work, restart the R session
-connectionDetails <- DatabaseConnector::createConnectionDetails( dbms = "iris", server = "host.docker.internal", user = "yourUsername", password = "yourpwd")
-conn <- DatabaseConnector::connect(connectionDetails)
+# load & configure connection to Iris, if it doesn't work, restart the R session
+connectionDetails <- DatabaseConnector::createConnectionDetails( dbms = "iris", server = "host.docker.internal", user = "yourUsername", password = "yourpwd", pathToDriver = "/opt/hades/jdbc_drivers")
+
+tryCatch({conn <- DatabaseConnector::connect(connectionDetails); message("Connected to IRIS")}, error = function(e) {stop("Connection failed — ensure JDBC driver is in /opt/hades/jdbc_drivers")})
 ```
 
 3. Update R packages from the Packages tab. Click Update in RStudio’s Packages panel.
 ![Hades](Hades_preparation.png)
 *Fig. 3. Packages in Rstudio*
 
-4. Load your dataset into the OMOP CDM 5.4 schema in IRIS.  
+4. [Load your dataset into the OMOP CDM 5.4 schema in IRIS.](#Loading-Data-into-InterSystems-IRIS-(OPTIONAL))  
 
-5. Run Achilles (make sure the CDM tables are populated with your data before running Achilles).
+5. Run Achilles (make sure the CDM tables are populated with your data before running Achilles).  
 Run code in RStudio:
 ```
 # Please check first that you have a created schema for the calculation results (OMOPCDM54_RESULTS below)
@@ -196,7 +226,7 @@ After Achilles runs successfully you will see dashboards populated in ATLAS.
 
 *Note! Before re-running Achilles on the same dataset, make sure to clean up the temporary classes (tables) it generates in the results schema in IRIS. Or create a new result schema to avoid conflicts.*
 
-## Loading Data into InterSystems IRIS - OPTIONAL
+## Loading Data into InterSystems IRIS (OPTIONAL)
 This section reviews practical pathways for bringing OMOP Common Data Model (CDM) content into an InterSystems IRIS instance—whether that instance runs locally, in Docker, or in the InterSystems Cloud. Choose the approach that best matches your environment and data‑volume profile.
 
 ### Using InterSystems Cloud
