@@ -202,6 +202,8 @@ tryCatch({conn <- DatabaseConnector::connect(connectionDetails); message("Connec
 Run code in RStudio:
 ```
 # Please check first that you have a created schema for the calculation results (OMOPCDM54_RESULTS below)
+install.packages("xml2")
+remotes::install_github("OHDSI/ParallelLogger")
 remotes::install_github("OHDSI/Achilles")
 library(Achilles)
 achilles(
@@ -256,6 +258,8 @@ Eunomia is a standard dataset manager for sample OMOP (Observational Medical Out
 To upload Eunomia in RStudio you can use this code:
 ```
 # Make sure the connection to IRIS is established and stored in 'conn'
+remotes::install_github("OHDSI/CommonDataModel")
+remotes::install_github("OHDSI/Eunomia")
 library(Eunomia)
 eunomiaDetails <- Eunomia::getEunomiaConnectionDetails()
 eunomiaConn <- DatabaseConnector::connect(eunomiaDetails)
