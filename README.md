@@ -159,8 +159,10 @@ INSERT INTO webapi.source_daimon( source_daimon_id, source_id, daimon_type, tabl
 docker cp 200_populate_iris_source_daimon.sql broadsea-atlasdb:/docker-entrypoint-initdb.d/200_populate_iris_source_daimon.sql
 docker exec -it broadsea-atlasdb psql -U postgres -f "/docker-entrypoint-initdb.d/200_populate_iris_source_daimon.sql"
 ```
-
-10. Restart  the affected container via the Docker Desktop UI.
+10. Allow incoming connections through the system firewall (on Windows ONLY):  
+    *Control Panel → System and Security → Windows Defender Firewall → Advanced settings → Inbound Rules → New Rule → Type: Port → TCP → Port: `<your port>` → Allow the connection*
+    
+12. Restart  the affected container via the Docker Desktop UI.
 Once all containers are healthy, open http://127.0.0.1 to access ATLAS and other services.
 ![OHDSI__Broadsea](Broadsea.png)
 *Fig. 2. Applications in OHDSI/Broadsea*
