@@ -161,6 +161,15 @@ docker exec -it broadsea-atlasdb psql -U postgres -f "/docker-entrypoint-initdb.
 ```
 10. Allow incoming connections through the system firewall (on Windows ONLY):  
     *Control Panel → System and Security → Windows Defender Firewall → Advanced settings → Inbound Rules → New Rule → Type: Port → TCP → Port: `<your port>` → Allow the connection*
+
+11. Temporary patch ([until upstream PR merges](https://github.com/intersystems-community/OHDSI-SqlRender/commit/0c6f068755083f9ec7479ed5038e5bcc0cc3d354)) — download and replace replacementPatterns.csv in the HADES container:
+ ```
+# find the container ID of ohdsi/broadsea-hades 
+docker ps
+
+# Copy the file to the container. Specify the path to the file you downloaded from the PR and container_id
+docker cp "/your_path/to/replacementPatterns.csv" <container_id>:/usr/local/lib/R/site-library/SqlRender/csv/replacementPatterns.csv
+```
     
 12. Restart  the affected container via the Docker Desktop UI.
 Once all containers are healthy, open http://127.0.0.1 to access ATLAS and other services.
