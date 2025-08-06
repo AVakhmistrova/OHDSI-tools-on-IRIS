@@ -159,19 +159,8 @@ INSERT INTO webapi.source_daimon( source_daimon_id, source_id, daimon_type, tabl
 docker cp 200_populate_iris_source_daimon.sql broadsea-atlasdb:/docker-entrypoint-initdb.d/200_populate_iris_source_daimon.sql
 docker exec -it broadsea-atlasdb psql -U postgres -f "/docker-entrypoint-initdb.d/200_populate_iris_source_daimon.sql"
 ```
-10. Allow incoming connections through the system firewall (on Windows ONLY):  
-    *Control Panel → System and Security → Windows Defender Firewall → Advanced settings → Inbound Rules → New Rule → Type: Port → TCP → Port: `<your port>` → Allow the connection*
-
-11. Temporary patch ([until upstream PR merges](https://github.com/intersystems-community/OHDSI-SqlRender/commit/0c6f068755083f9ec7479ed5038e5bcc0cc3d354)) — download and replace replacementPatterns.csv in the HADES container:
- ```
-# find the container ID of ohdsi/broadsea-hades 
-docker ps
-
-# Copy the file to the container. Specify the path to the file you downloaded from the PR and container_id
-docker cp "/your_path/to/replacementPatterns.csv" <container_id>:/usr/local/lib/R/site-library/SqlRender/csv/replacementPatterns.csv
-```
-    
-12. Restart  the affected container via the Docker Desktop UI.
+   
+10. Restart  the affected container via the Docker Desktop UI.
 Once all containers are healthy, open http://127.0.0.1 to access ATLAS and other services.
 ![OHDSI__Broadsea](Broadsea.png)
 *Fig. 2. Applications in OHDSI/Broadsea*
@@ -188,13 +177,26 @@ Once all containers are healthy, open http://127.0.0.1 to access ATLAS and other
 # this command should be run ONLY on macOS with apple silicon chip!
 Sys.setenv(JAVA_HOME = "/usr/lib/jvm/default-java")
 install.packages("rJava")
+install.packages("SqlRender")
 
 # this command should be run ONLY on macOS with apple silicon chip!
 if (!requireNamespace("remotes", quietly = TRUE)) {install.packages("remotes")}
 
 #install the recommended version (commit-specific) of DatabaseConnector
 tryCatch({remotes::install_github("OHDSI/DatabaseConnector@7968375593dc7e030c7cc243d9f52828c6cc94bc", upgrade = "never", dependencies = TRUE)}, error = function(e) {stop("Cannot continue without DatabaseConnector: ", conditionMessage(e))})
+```
 
+3. Temporary patch ([until upstream PR merges](https://github.com/intersystems-community/OHDSI-SqlRender/commit/0c6f068755083f9ec7479ed5038e5bcc0cc3d354)) — download and replace replacementPatterns.csv in the HADES container:
+ ```
+# find the container ID of ohdsi/broadsea-hades 
+docker ps
+
+# Copy the file to the container. Specify the path to the file you downloaded from the PR and container_id
+docker cp "/your_path/to/replacementPatterns.csv" <container_id>:/usr/local/lib/R/site-library/SqlRender/csv/replacementPatterns.csv
+```
+
+4. Run the commands in RStudio:
+```
 library(DatabaseConnector)
 
 # load & configure connection to Iris, if it doesn't work, restart the R session
@@ -203,13 +205,13 @@ connectionDetails <- DatabaseConnector::createConnectionDetails( dbms = "iris", 
 tryCatch({conn <- DatabaseConnector::connect(connectionDetails); message("Connected to IRIS")}, error = function(e) {stop("Connection failed — ensure JDBC driver is in /opt/hades/jdbc_drivers")})
 ```
 
-3. Update R packages from the Packages tab. Click Update in RStudio’s Packages panel.
+5. Update R packages from the Packages tab. Click Update in RStudio’s Packages panel.
 ![Hades](Hades_preparation.png)
 *Fig. 3. Packages in Rstudio*
 
-4. [Load your dataset into the OMOP CDM 5.4 schema in IRIS.](#loading-data-into-intersystems-iris-optional)  
+6. [Load your dataset into the OMOP CDM 5.4 schema in IRIS.](#loading-data-into-intersystems-iris-optional)  
 
-5. Run Achilles (make sure the CDM tables are populated with your data before running Achilles).  
+7. Run Achilles (make sure the CDM tables are populated with your data before running Achilles).  
 Run code in RStudio:
 ```
 # Please check first that you have a created schema for the calculation results (OMOPCDM54_RESULTS below)
