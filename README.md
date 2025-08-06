@@ -127,7 +127,7 @@ docker-compose --env-file .env --profile webapi-from-git --profile content --pro
 *Note: ONLY on macOS with apple silicon chip!*
 ```
 docker exec -it broadsea-hades bash
-apt-get update && apt-get install -y unixodbc-dev libpq-dev libssl-dev libssh-dev libcurl4-openssl-dev libxml2-dev libgit2-dev build-essential
+apt-get update && apt-get install -y default-jdk r-base-dev liblzma-dev libbz2-dev unixodbc-dev libpq-dev libssl-dev libssh-dev libcurl4-openssl-dev libxml2-dev libgit2-dev build-essential
 exit
 ```
 
