@@ -146,8 +146,8 @@ Alternatively run DatabaseConnector::downloadJdbcDrivers(\"iris\") inside RStudi
 Create a new file named 200_populate_iris_source_daimon.sql and add the following SQL content (you can see this example script from the Broadsea repository for reference). Be sure to replace **%LOGIN%** and **%PASSWORD%** with your actual IRIS credentials:  
 *Note: On macOS use VS Code or another IDE instead of TextEdit. TextEdit can add invisible formatting that breaks scripts*
  ```
-DELETE FROM webapi.source_daimon WHERE source_daimon_id IN (4, 5, 6);
-DELETE FROM webapi.source WHERE source_id = 2;
+DELETE FROM webapi.source_daimon WHERE source_daimon_id NOT IN (1, 2, 3);
+DELETE FROM webapi.source WHERE source_id NOT IN (1);
 INSERT INTO webapi.source(source_id, source_name, source_key, source_connection, source_dialect)
 VALUES (2, 'my-iris', 'IRIS', 'jdbc:IRIS://host.docker.internal:1972/USER?user=%LOGIN%&password=%PASSWORD%', 'iris');
 INSERT INTO webapi.source_daimon( source_daimon_id, source_id, daimon_type, table_qualifier, priority) VALUES (4, 2, 0, 'OMOPCDM54', 0);
